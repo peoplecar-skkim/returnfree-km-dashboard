@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>투루카 | 리턴프리·카카오 채널 대시보드</title>
+<style>
+  :root{
+    --bg:#f5f5f3; --card:#ffffff; --border:#e3e2dd; --border-strong:#c9c8c1;
+    --text:#1a1a18; --text-secondary:#5f5e5a; --text-muted:#898781;
+    --blue:#2a78d6; --orange:#eb6834; --teal:#1baf7a; --pink:#e87ba4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,"Segoe UI",Pretendard,Malgun Gothic,sans-serif;
+    background:var(--bg); color:var(--text); padding:24px;
+  }
+  .header{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;}
+  .header h1{font-size:20px; font-weight:600; margin:0;}
+  .header .updated{font-size:12px; color:var(--text-muted);}
+
+  .goal-section{
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:18px 20px; margin-bottom:20px;
+  }
+  .goal-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;}
+  .goal-top h2{font-size:14px; font-weight:600; margin:0; color:var(--text-secondary);}
+  .goal-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px;}
+  .goal-card .label{font-size:12px; color:var(--text-secondary); margin:0 0 6px;}
+  .goal-card .value{font-size:24px; font-weight:600; margin:0;}
+  .goal-card .value.rate-ok{color:#1baf7a;}
+  .goal-card .value.rate-warn{color:#eb6834;}
+  .goal-bar-wrap{height:8px; background:#e9e8e3; border-radius:4px; overflow:hidden; margin-top:4px;}
+  .goal-bar-fill{height:100%; background:var(--blue); border-radius:4px;}
+  .goal-mini-chart{position:relative; width:100%; height:180px;}
+
+  .tabs{display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:20px;}
+  .tab-btn{
+    border:none; background:none; padding:10px 16px; font-size:14px; cursor:pointer;
+    color:var(--text-secondary); border-bottom:2px solid transparent; font-weight:500;
+  }
+  .tab-btn.active{color:var(--text); border-bottom-color:var(--blue);}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .cards{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:12px; margin-bottom:20px;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px;
+  }
+  .card .label{font-size:12px; color:var(--text-secondary); margin:0 0 6px;}
+  .card .value{font-size:22px; font-weight:600; margin:0;}
+
+  .toolbar{display:flex; gap:8px; margin-bottom:12px;}
+  .toggle-btn{
+    border:1px solid var(--border-strong); background:var(--card); border-radius:6px;
+    padding:6px 14px; font-size:13px; cursor:pointer; color:var(--text-secondary);
+  }
+  .toggle-btn.active{background:var(--text); color:#fff; border-color:var(--text);}
+
+  .sub-toolbar{
+    display:flex; gap:6px; margin:-4px 0 12px 4px; padding-left:12px;
+    border-left:2px solid var(--border); align-items:center;
+  }
+  .sub-toggle-btn{
+    border:1px solid transparent; background:var(--bg); border-radius:14px;
+    padding:4px 12px; font-size:12px; cursor:pointer; color:var(--text-muted);
+  }
+  .sub-toggle-btn.active{background:var(--surface-1, #eceae3); color:var(--text-secondary); border-color:var(--border-strong); font-weight:500;}
+
+  .rf-subtabs{display:flex; gap:20px; align-items:flex-start;}
+  .rf-sidebar{
+    flex:0 0 150px; display:flex; flex-direction:column; gap:4px; position:sticky; top:16px;
+  }
+  .rf-sidebar button{
+    text-align:left; border:none; background:none; padding:10px 12px; font-size:13px;
+    color:var(--text-secondary); border-radius:8px; cursor:pointer;
+  }
+  .rf-sidebar button.active{background:var(--text); color:#fff; font-weight:500;}
+  .rf-sidebar button:hover:not(.active){background:var(--surface-1, #eceae3);}
+  .rf-subcontent{flex:1; min-width:0;}
+  .rf-subpanel{display:none;}
+  .rf-subpanel.active{display:block;}
+
+  .kpi-cards{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    gap:10px; margin-bottom:20px;
+  }
+  .kpi-card{
+    background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 14px;
+  }
+  .kpi-card .kpi-label{font-size:12px; color:var(--text-secondary); margin:0 0 4px;}
+  .kpi-card .kpi-value{font-size:19px; font-weight:600; margin:0 0 6px;}
+  .kpi-card .kpi-value .kpi-unit{font-size:12px; font-weight:400; color:var(--text-muted); margin-left:2px;}
+  .kpi-card .kpi-row{display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:2px;}
+  .kpi-card .kpi-row .kpi-pct.up{color:#c0392b;}
+  .kpi-card .kpi-row .kpi-pct.down{color:#2a5db0;}
+  .kpi-card .kpi-row .kpi-pct.na{color:var(--text-muted);}
+
+  .heatmap-table{border-collapse:separate; border-spacing:2px; font-size:12px; width:100%;}
+  .heatmap-table th{
+    font-weight:500; color:var(--text-muted); padding:0 0 6px; text-align:center; font-size:11px;
+  }
+  .heatmap-table td{
+    text-align:center; padding:0; height:30px; position:relative;
+    color:#fff; font-size:11px; border-radius:5px; font-variant-numeric:tabular-nums;
+    transition:transform .08s ease;
+  }
+  .heatmap-table .hm-weekday-label{
+    color:var(--text-secondary); font-size:12px; font-weight:500; text-align:center; padding-right:10px; width:30px;
+  }
+  .heatmap-table td.hm-cell:hover{transform:scale(1.08); box-shadow:0 0 0 2px var(--text); z-index:2; cursor:pointer;}
+
+  .coupon-table{border-collapse:collapse; width:100%; font-size:12px; white-space:nowrap;}
+  .coupon-table th{
+    text-align:right; font-weight:500; color:var(--text-secondary); padding:8px 10px;
+    border-bottom:1px solid var(--border-strong); position:sticky; top:0; background:var(--card);
+  }
+  .coupon-table th:first-child, .coupon-table td:first-child{text-align:left; position:sticky; left:0; background:var(--card); z-index:1;}
+  .coupon-table td{text-align:right; padding:7px 10px; border-bottom:1px solid var(--border);}
+  .coupon-table tr:hover td{background:var(--bg);}
+  .coupon-table .delta-up{color:#c0392b; font-size:11px; margin-left:4px;}
+  .coupon-table .delta-down{color:#2a5db0; font-size:11px; margin-left:4px;}
+  .delta-up{color:#c0392b;}
+  .delta-down{color:#2a5db0;}
+
+  .fuel-table{border-collapse:separate; border-spacing:0 6px; width:100%; font-size:13px;}
+  .fuel-table th{
+    text-align:right; font-weight:500; color:var(--text-muted); padding:0 12px 4px; font-size:11px;
+  }
+  .fuel-table th:first-child, .fuel-table td:first-child{text-align:left;}
+  .fuel-table th.sortable{cursor:pointer; user-select:none;}
+  .fuel-table th.sortable:hover{color:var(--text-secondary);}
+  .fuel-table th.sortable .sort-arrow{font-size:9px; margin-left:2px; opacity:0.5;}
+  .fuel-table th.sort-active .sort-arrow{opacity:1; color:var(--text);}
+  .fuel-table td{
+    background:var(--card); border:1px solid var(--border); padding:10px 12px;
+    border-left:none; border-right:none; text-align:right;
+  }
+  .fuel-table td:first-child{border-left:1px solid var(--border); border-radius:8px 0 0 8px; font-weight:500;}
+  .fuel-table td:last-child{border-right:1px solid var(--border); border-radius:0 8px 8px 0;}
+  .fuel-table tr:hover td{background:var(--bg);}
+  .coupon-table .row-baseline td{font-weight:600; background:var(--bg);}
+
+  .chart-wrap{
+    position:relative; width:100%; height:320px; background:var(--card);
+    border:1px solid var(--border); border-radius:10px; padding:16px;
+  }
+  .chart-wrap + .chart-wrap{margin-top:16px;}
+
+  .legend{display:flex; gap:16px; margin-bottom:8px; font-size:12px; color:var(--text-secondary);}
+  .legend span{display:flex; align-items:center; gap:5px;}
+  .legend i{width:10px; height:10px; border-radius:2px; display:inline-block;}
+
+  .empty{
+    text-align:center; padding:48px 0; color:var(--text-muted); font-size:14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>투루카 리턴프리·카카오 채널 대시보드</h1>
+  <span class="updated" id="updatedAt"></span>
+</div>
+<div style="font-size:12px; color:var(--text-muted); margin:-14px 0 16px;">※ 대시보드 내 모든 "매출" 관련 지표는 부가세(VAT) 제외 기준입니다 (총결제요금 ÷ 1.1)</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="rf">리턴프리</button>
+  <button class="tab-btn" data-tab="kk">카카오</button>
+</div>
+
+<div class="panel active" id="panel-rf">
+  <div class="rf-subtabs">
+    <div class="rf-sidebar">
+      <button class="active" data-subtab="usage">이용매출현황</button>
+      <button data-subtab="fuel">주유손익</button>
+    </div>
+    <div class="rf-subcontent">
+
+    <div class="rf-subpanel active" id="rf-subpanel-usage">
+    <div class="goal-section" id="goal-section"></div>
+    <h2 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0 0 10px;">실적 요약</h2>
+    <div class="toolbar" id="kpi-mode-filter">
+      <button class="toggle-btn active" data-mode="weekly" id="kpi-weekly-btn">주차</button>
+      <button class="toggle-btn" data-mode="monthly" id="kpi-monthly-btn">월</button>
+    </div>
+    <div class="toolbar" id="kpi-week-filter"></div>
+    <div class="kpi-cards" id="kpi-cards"></div>
+
+    <h2 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0 0 10px;">리턴프리 건수, 매출 트렌드</h2>
+    <div class="toolbar" id="rf-mode-toolbar">
+      <button class="toggle-btn active" data-mode="weekly" id="rf-weekly">주차별</button>
+      <button class="toggle-btn" data-mode="monthly" id="rf-monthly">월별</button>
+      <button class="toggle-btn" data-mode="daily" id="rf-daily">일별 (최근 60일)</button>
+    </div>
+    <div class="sub-toolbar" id="rf-weekly-filters"></div>
+    <div class="legend" id="rf-legend">
+      <span><i style="background:var(--blue)"></i>매출</span>
+      <span><i style="background:var(--orange)"></i>건수</span>
+    </div>
+    <div class="chart-wrap">
+      <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px;">건수 그래프</p>
+      <canvas id="rfChart" role="img" aria-label="리턴프리 건수 트렌드 차트"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px;">매출 그래프</p>
+      <canvas id="rfRevChart" role="img" aria-label="리턴프리 매출 트렌드 차트"></canvas>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:24px 0 10px;">주간 트렌드 — 상세 지표 (전년동기 vs 이번 해)</h2>
+    <div class="toolbar" id="yoy-metric-filters" style="flex-wrap:wrap;"></div>
+    <div class="sub-toolbar" id="yoy-weekday-filters"></div>
+    <div class="sub-toolbar" id="yoy-hourtype-filters"></div>
+    <div class="chart-wrap">
+      <div id="yoy-metric-note" style="font-size:11px; color:var(--text-muted); margin-bottom:6px;"></div>
+      <div id="yoy-legend" style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;"></div>
+      <canvas id="yoyChart" role="img" aria-label="리턴프리 주간 지표 전년동기 대비 이번해 비교 차트"></canvas>
+      <canvas id="durationChart" role="img" aria-label="리턴프리 이용시간구간별 주차별 분포 차트" style="display:none;"></canvas>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:24px 0 10px;">요일 × 시간대 출발건수</h2>
+    <div class="toolbar" id="heatmap-period-filter"></div>
+    <div class="chart-wrap">
+      <div id="heatmap-wrap"></div>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:24px 0 10px;">지역 간 이동 (출발지역 → 반납지역)</h2>
+    <div class="toolbar" id="region-period-filter"></div>
+    <div class="chart-wrap" style="height:auto;">
+      <div id="sankey-wrap"></div>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:24px 0 10px;">쿠폰 성과</h2>
+    <div class="toolbar" id="coupon-mode-filter">
+      <button class="toggle-btn active" data-mode="weekly" id="coupon-weekly-btn">주차</button>
+      <button class="toggle-btn" data-mode="monthly" id="coupon-monthly-btn">월</button>
+    </div>
+    <div class="toolbar" id="coupon-period-filter"></div>
+    <div class="chart-wrap" style="height:auto;">
+      <div id="coupon-table-wrap" style="overflow-x:auto;"></div>
+    </div>
+    </div>
+
+    <div class="rf-subpanel" id="rf-subpanel-fuel">
+    <h2 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0 0 10px;">주유손익 (Returnfree)</h2>
+    <p style="font-size:11px; color:var(--text-muted); margin:-6px 0 12px;">주유손익 = 주행매출 − 조정주유비(Adjusted_Fuel_Cost, 차종·월별 km당 주유비 × 이용거리로 산정), PG수수료 제외<br>※ 반납(Trip_End_Time) 기준 집계</p>
+
+    <h3 style="font-size:13px; font-weight:600; color:var(--text-secondary); margin:16px 0 8px;">월별 트렌드</h3>
+    <div class="chart-wrap">
+      <canvas id="fuelTrendChart" role="img" aria-label="리턴프리 월별 주유손익 트렌드 차트"></canvas>
+    </div>
+
+    <div class="toolbar" id="fuel-month-filter" style="margin-top:20px;"></div>
+    <div class="kpi-cards" id="fuel-summary-cards"></div>
+
+    <h3 style="font-size:13px; font-weight:600; color:var(--text-secondary); margin:20px 0 8px;">유종별</h3>
+    <div id="fuel-by-fueltype-wrap" style="overflow-x:auto;"></div>
+
+    <h3 style="font-size:13px; font-weight:600; color:var(--text-secondary); margin:20px 0 8px;">주간/심야별</h3>
+    <div id="fuel-by-daytype-wrap" style="overflow-x:auto;"></div>
+
+    <h3 style="font-size:13px; font-weight:600; color:var(--text-secondary); margin:20px 0 8px;">차종별 (헤더 클릭 시 정렬)</h3>
+    <div class="chart-wrap" style="height:auto; max-height:420px; overflow-y:auto;">
+      <div id="fuel-by-vehicle-wrap" style="overflow-x:auto;"></div>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:24px 0 10px;">이용건 / 이용자별 주유손익</h2>
+    <div class="toolbar" id="fuel-level-tabs">
+      <button class="toggle-btn active" data-level="trip" id="fuel-level-trip-btn">이용건</button>
+      <button class="toggle-btn" data-level="customer" id="fuel-level-customer-btn">이용자</button>
+    </div>
+
+    <div id="fuel-level-trip-panel">
+      <div class="kpi-cards" id="fuel-trip-cards"></div>
+      <div class="legend" style="margin-top:16px;">
+        <span><i style="background:#2a78d6"></i>흑자 건</span>
+        <span><i style="background:#c0392b"></i>손실 건</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="fuelTripScatterChart" role="img" aria-label="이용건별 이용거리 대비 주유손익 산점도"></canvas>
+      </div>
+    </div>
+
+    <div id="fuel-level-customer-panel" style="display:none;">
+      <div class="kpi-cards" id="fuel-customer-cards"></div>
+      <div class="legend" style="margin-top:16px;">
+        <span><i style="background:#2a78d6"></i>흑자 고객</span>
+        <span><i style="background:#c0392b"></i>손실 고객</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="fuelScatterChart" role="img" aria-label="고객별 월 이용건수 대비 주유손익 산점도"></canvas>
+      </div>
+    </div>
+    </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-kk">
+  <div class="cards" id="kk-cards"></div>
+  <div class="legend">
+    <span><i style="background:var(--teal)"></i>왕복 매출</span>
+    <span><i style="background:var(--pink)"></i>편도 매출</span>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="kkChart" role="img" aria-label="카카오 왕복 편도 일별 매출 차트"></canvas>
+  </div>
+</div>
+
+<script src="assets/chart.umd.min.js"></script>
+<script src="assets/data.js"></script>
+<script>
+function fmtWon(v){
+  if(Math.abs(v) >= 100000000) return (v/100000000).toFixed(1)+'억';
+  if(Math.abs(v) >= 10000) return (v/10000).toFixed(0)+'만';
+  return v.toLocaleString();
+}
+function fmtWonFull(v){ return Math.round(v).toLocaleString()+'원'; }
+
+document.getElementById('updatedAt').textContent =
+  '업데이트: ' + (DASHBOARD_DATA.generated_at || '-');
+
+/* ---------------- 탭 전환 ---------------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------------- 리턴프리 ---------------- */
+const rf = DASHBOARD_DATA.returnfree;
+
+/* ---------------- 목표 대비 실적 (2026 리턴프리) ---------------- */
+if(rf && rf.latest_goal){
+  const g = rf.latest_goal;
+  const rateClass = g.rate >= 100 ? 'rate-ok' : 'rate-warn';
+  const barPct = Math.min(g.rate || 0, 100);
+  document.getElementById('goal-section').innerHTML = `
+    <div class="goal-top"><h2>리턴프리 목표 달성 현황</h2></div>
+    <div class="goal-cards">
+      <div class="goal-card"><p class="label">${g.ym} 목표</p><p class="value">${g.goal.toLocaleString()}원</p></div>
+      <div class="goal-card"><p class="label">현재 실적 (${g.data_from}~${g.data_to})</p><p class="value">${g.actual.toLocaleString()}원</p></div>
+      <div class="goal-card">
+        <p class="label">달성률</p>
+        <p class="value ${rateClass}">${g.rate}%</p>
+        <div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${barPct}%;"></div></div>
+      </div>
+    </div>
+    <div class="goal-mini-chart"><canvas id="goalChart" role="img" aria-label="2026년 월별 리턴프리 목표 대비 실적 차트"></canvas></div>
+  `;
+
+  const goals = rf.goals_2026;
+  new Chart(document.getElementById('goalChart'), {
+    data:{
+      labels: goals.map(x=>x.ym),
+      datasets:[
+        {type:'bar', label:'목표', data: goals.map(x=>x.goal), backgroundColor:'#d3d1c7', borderRadius:4, order:1},
+        {type:'bar', label:'실적', data: goals.map(x=>x.actual), backgroundColor:'#2a78d6', borderRadius:4, order:2}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:(c)=> c.dataset.label+': '+(c.raw!=null? fmtWonFull(c.raw):'-'),
+          afterBody:(items)=>{
+            const idx = items[0].dataIndex;
+            const rate = goals[idx].rate;
+            return rate!=null ? '달성률: '+rate+'%' : '';
+          }
+        }}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{autoSkip:false, maxRotation:0, font:{size:11}}},
+        y:{ticks:{callback:(v)=>fmtWon(v)}, grid:{color:'#e1e0d9'}}
+      }
+    }
+  });
+}
+
+if(rf){
+  document.querySelectorAll('.rf-sidebar button').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.rf-sidebar button').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.rf-subpanel').forEach(p=>p.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById('rf-subpanel-'+this.dataset.subtab).classList.add('active');
+    });
+  });
+
+  /* ---------------- 실적 요약 카드 (주차/월 선택 가능) ---------------- */
+  if(rf.kpi_metrics){
+    let kpiMode = 'weekly'; // weekly | monthly
+    let kpiPeriod = null;
+
+    function curKm(){ return kpiMode==='weekly' ? rf.kpi_metrics : rf.kpi_metrics_monthly; }
+    function kpiKeysOf(km){ return Object.keys(km); }
+    function kpiYearsOf(km){ return Object.keys(km['건수'].by_year).sort(); }
+    function kpiPeriodsAvail(km, curYear){ return km['건수'].by_year[curYear].weeks; }
+
+    function fmtCardValue(v, unit){
+      if(unit==='매출') return Math.round(v).toLocaleString()+'<span class="kpi-unit">원</span>';
+      if(unit==='%') return v+'<span class="kpi-unit">%</span>';
+      if(unit==='분') return v+'<span class="kpi-unit">분</span>';
+      if(unit==='km') return v+'<span class="kpi-unit">km</span>';
+      if(unit==='대수') return v.toLocaleString()+'<span class="kpi-unit">대</span>';
+      if(unit==='명') return v.toLocaleString()+'<span class="kpi-unit">명</span>';
+      if(unit==='건') return v.toLocaleString()+'<span class="kpi-unit">건</span>';
+      return v.toLocaleString();
+    }
+    function fmtPct(p){
+      if(p==null || isNaN(p)) return '<span class="kpi-pct na">—</span>';
+      const cls = p>0?'up':(p<0?'down':'na');
+      const sign = p>0?'+':'';
+      return `<span class="kpi-pct ${cls}">${sign}${p}%</span>`;
+    }
+    function pctChange(cur, prev){
+      if(cur==null || prev==null || prev===0 || isNaN(cur) || isNaN(prev)) return null;
+      return Math.round((cur-prev)/prev*1000)/10;
+    }
+
+    function renderKpiWeekFilter(){
+      const km = curKm();
+      const years = kpiYearsOf(km);
+      const curYear = years[years.length-1];
+      const periodsAvail = kpiPeriodsAvail(km, curYear);
+      if(kpiPeriod==null || periodsAvail.indexOf(kpiPeriod)===-1) kpiPeriod = periodsAvail[periodsAvail.length-1];
+
+      const isWeekly = kpiMode==='weekly';
+      const ranges = rf.kpi_week_ranges || {};
+      const prevLabel = isWeekly ? '◀ 이전 주' : '◀ 이전 달';
+      const nextLabel = isWeekly ? '다음 주 ▶' : '다음 달 ▶';
+      const latestLabel = isWeekly ? '최신 주' : '최신 달';
+      const selectLabel = isWeekly ? '주 선택' : '월 선택';
+
+      const box = document.getElementById('kpi-week-filter');
+      box.style.cssText = 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;';
+      box.innerHTML = `
+        <button id="kpi-prev-week" class="toggle-btn">${prevLabel}</button>
+        <label style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+          ${selectLabel}
+          <select id="kpi-week-select" style="font-size:13px;padding:5px 8px;border:1px solid var(--border-strong);border-radius:6px;background:var(--card);"></select>
+        </label>
+        <button id="kpi-next-week" class="toggle-btn">${nextLabel}</button>
+        <button id="kpi-latest-week" class="toggle-btn">${latestLabel}</button>
+      `;
+      const sel = document.getElementById('kpi-week-select');
+      periodsAvail.forEach(w=>{
+        const opt = document.createElement('option');
+        opt.value = w;
+        opt.textContent = isWeekly ? (ranges[w] || (w+'주')) : (curYear+'년 '+w+'월');
+        if(w===kpiPeriod) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', function(){ kpiPeriod = parseInt(this.value); renderKpiWeekFilter(); renderKpiCards(); });
+
+      const idx = periodsAvail.indexOf(kpiPeriod);
+      document.getElementById('kpi-prev-week').disabled = (idx<=0);
+      document.getElementById('kpi-next-week').disabled = (idx===-1 || idx>=periodsAvail.length-1);
+      document.getElementById('kpi-latest-week').disabled = (kpiPeriod===periodsAvail[periodsAvail.length-1]);
+
+      document.getElementById('kpi-prev-week').addEventListener('click', function(){
+        const i = periodsAvail.indexOf(kpiPeriod);
+        if(i>0){ kpiPeriod = periodsAvail[i-1]; renderKpiWeekFilter(); renderKpiCards(); }
+      });
+      document.getElementById('kpi-next-week').addEventListener('click', function(){
+        const i = periodsAvail.indexOf(kpiPeriod);
+        if(i>=0 && i<periodsAvail.length-1){ kpiPeriod = periodsAvail[i+1]; renderKpiWeekFilter(); renderKpiCards(); }
+      });
+      document.getElementById('kpi-latest-week').addEventListener('click', function(){
+        kpiPeriod = periodsAvail[periodsAvail.length-1]; renderKpiWeekFilter(); renderKpiCards();
+      });
+    }
+
+    function renderKpiCards(){
+      const km = curKm();
+      const years = kpiYearsOf(km);
+      const curYear = years[years.length-1];
+      const prevYear = years.length>1 ? years[0] : null;
+      const isWeekly = kpiMode==='weekly';
+      const yoyLabel = isWeekly ? '전년동기(동요일)' : '전년동기';
+      const wowLabel = isWeekly ? '전주' : '전월';
+
+      const cards = kpiKeysOf(km).map(key=>{
+        const m = km[key];
+        const curArr = m.by_year[curYear];
+        const idx = curArr.weeks.indexOf(kpiPeriod);
+        if(idx===-1) return null;
+        const value = curArr.values[idx];
+        const wowVal = idx>0 ? curArr.values[idx-1] : null;
+        let yoyVal = null;
+        if(prevYear){
+          const prevArr = m.by_year[prevYear];
+          const pidx = prevArr.weeks.indexOf(kpiPeriod);
+          if(pidx!==-1) yoyVal = prevArr.values[pidx];
+        }
+        return {label:key, unit:m.unit, value, wow_pct: pctChange(value,wowVal), yoy_pct: pctChange(value,yoyVal)};
+      }).filter(Boolean);
+
+      document.getElementById('kpi-cards').innerHTML = cards.map(c=>`
+        <div class="kpi-card">
+          <p class="kpi-label">${c.label}</p>
+          <p class="kpi-value">${fmtCardValue(c.value, c.unit)}</p>
+          <div class="kpi-row"><span>${wowLabel}</span>${fmtPct(c.wow_pct)}</div>
+          <div class="kpi-row"><span>${yoyLabel}</span>${fmtPct(c.yoy_pct)}</div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('kpi-weekly-btn').addEventListener('click', function(){
+      document.querySelectorAll('#kpi-mode-filter .toggle-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      kpiMode = 'weekly'; kpiPeriod = null;
+      renderKpiWeekFilter(); renderKpiCards();
+    });
+    document.getElementById('kpi-monthly-btn').addEventListener('click', function(){
+      document.querySelectorAll('#kpi-mode-filter .toggle-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      kpiMode = 'monthly'; kpiPeriod = null;
+      renderKpiWeekFilter(); renderKpiCards();
+    });
+
+    renderKpiWeekFilter();
+    renderKpiCards();
+  }
+
+  let rfChart, rfRevChart;
+  const years = Object.keys(rf.weekly_by_year).filter(y=>y!=='전체').sort();
+  let weeklyYear = years[years.length-1];
+  let curFilter = 'all'; // all | night | day
+
+  function getDataFor(mode){
+    if(mode==='weekly') return rf.weekly_by_year[weeklyYear];
+    if(mode==='monthly') return {labels: rf.monthly_labels, ...rf.monthly_nd};
+    return {labels: rf.daily_labels, ...rf.daily_nd};
+  }
+
+  function renderFilters(mode){
+    const box = document.getElementById('rf-weekly-filters');
+    const yearBtns = mode==='weekly'
+      ? ['전체', ...years].map(y=>
+          `<button class="sub-toggle-btn${y===weeklyYear?' active':''}" data-year="${y}">${y==='전체'?'전체 연도':y+'년'}</button>`
+        ).join('') + '<span style="width:1px;background:var(--border-strong);margin:0 4px;"></span>'
+      : '';
+    box.innerHTML = yearBtns + `
+      <button class="sub-toggle-btn${curFilter==='all'?' active':''}" data-filter="all">전체</button>
+      <button class="sub-toggle-btn${curFilter==='night'?' active':''}" data-filter="night">심야</button>
+      <button class="sub-toggle-btn${curFilter==='day'?' active':''}" data-filter="day">주간</button>
+    `;
+    box.querySelectorAll('[data-year]').forEach(b=>b.addEventListener('click', function(){
+      weeklyYear = this.dataset.year; renderFilters('weekly'); renderRf('weekly');
+    }));
+    box.querySelectorAll('[data-filter]').forEach(b=>b.addEventListener('click', function(){
+      curFilter = this.dataset.filter; renderFilters(mode); renderRf(mode);
+    }));
+  }
+
+  function renderRf(mode){
+    if(rfChart) rfChart.destroy();
+    if(rfRevChart) rfRevChart.destroy();
+    document.getElementById('rf-weekly-filters').style.display = 'flex';
+
+    const w = getDataFor(mode);
+    const showNight = curFilter!=='day';
+    const showDay = curFilter!=='night';
+
+    const legendParts = [];
+    if(showDay) legendParts.push('<span><i style="background:#f0997b"></i>주간</span>');
+    if(showNight) legendParts.push('<span><i style="background:#2a78d6"></i>심야</span>');
+    if(curFilter==='all') legendParts.push('<span><i style="background:#d4537e"></i>합계</span>');
+    if(showNight) legendParts.push('<span><i style="background:#0c447c"></i>심야비중</span>');
+    if(showDay) legendParts.push('<span><i style="background:#993c1d"></i>주간비중</span>');
+    document.getElementById('rf-legend').innerHTML = legendParts.join('');
+
+    // 건수 차트
+    const cntDatasets = [];
+    if(showDay) cntDatasets.push({type:'bar', label:'주간건수', data:w.day_cnt, backgroundColor:'#f0997b', stack:'cnt', yAxisID:'y', order:3});
+    if(showNight) cntDatasets.push({type:'bar', label:'심야건수', data:w.night_cnt, backgroundColor:'#2a78d6', stack:'cnt', yAxisID:'y', order:3});
+    if(curFilter==='all') cntDatasets.push({type:'line', label:'합계', data:w.total_cnt, borderColor:'#d4537e', backgroundColor:'#d4537e', yAxisID:'y', tension:0.3, borderWidth:2, pointRadius:0, order:1});
+    if(showNight) cntDatasets.push({type:'line', label:'심야비중', data:w.night_pct, borderColor:'#0c447c', backgroundColor:'#0c447c', yAxisID:'y1', tension:0.3, borderWidth:1.5, pointRadius:0, order:2});
+    if(showDay) cntDatasets.push({type:'line', label:'주간비중', data:w.day_pct, borderColor:'#993c1d', backgroundColor:'#993c1d', yAxisID:'y1', tension:0.3, borderWidth:1.5, pointRadius:0, order:2});
+
+    rfChart = new Chart(document.getElementById('rfChart'), {
+      data:{ labels: w.labels, datasets: cntDatasets },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index', intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:(c)=>{
+            if(c.dataset.label==='심야비중' || c.dataset.label==='주간비중') return c.dataset.label+': '+c.raw+'%';
+            return c.dataset.label+': '+c.raw.toLocaleString()+'건';
+          }}}
+        },
+        scales:{
+          x:{grid:{display:false}, ticks:{autoSkip:true, maxRotation:45, font:{size:10}}, stacked:true},
+          y:{position:'left', stacked:true, ticks:{callback:(v)=>v.toLocaleString()}, grid:{color:'#e1e0d9'}},
+          y1:{position:'right', min:0, max:100, grid:{display:false}, ticks:{callback:(v)=>v+'%'}}
+        }
+      }
+    });
+
+    // 매출 차트
+    const revDatasets = [];
+    if(showDay) revDatasets.push({type:'bar', label:'주간매출', data:w.day_rev, backgroundColor:'#f0997b', stack:'rev', yAxisID:'y', order:3});
+    if(showNight) revDatasets.push({type:'bar', label:'심야매출', data:w.night_rev, backgroundColor:'#2a78d6', stack:'rev', yAxisID:'y', order:3});
+    if(curFilter==='all') revDatasets.push({type:'line', label:'합계', data:w.total_rev, borderColor:'#d4537e', backgroundColor:'#d4537e', yAxisID:'y', tension:0.3, borderWidth:2, pointRadius:0, order:1});
+    if(showNight) revDatasets.push({type:'line', label:'심야비중', data:w.night_rev_pct, borderColor:'#0c447c', backgroundColor:'#0c447c', yAxisID:'y1', tension:0.3, borderWidth:1.5, pointRadius:0, order:2});
+    if(showDay) revDatasets.push({type:'line', label:'주간비중', data:w.day_rev_pct, borderColor:'#993c1d', backgroundColor:'#993c1d', yAxisID:'y1', tension:0.3, borderWidth:1.5, pointRadius:0, order:2});
+
+    rfRevChart = new Chart(document.getElementById('rfRevChart'), {
+      data:{ labels: w.labels, datasets: revDatasets },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index', intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:(c)=>{
+            if(c.dataset.label==='심야비중' || c.dataset.label==='주간비중') return c.dataset.label+': '+c.raw+'%';
+            return c.dataset.label+': '+fmtWonFull(c.raw);
+          }}}
+        },
+        scales:{
+          x:{grid:{display:false}, ticks:{autoSkip:true, maxRotation:45, font:{size:10}}, stacked:true},
+          y:{position:'left', stacked:true, ticks:{callback:(v)=>fmtWon(v)}, grid:{color:'#e1e0d9'}},
+          y1:{position:'right', min:0, max:100, grid:{display:false}, ticks:{callback:(v)=>v+'%'}}
+        }
+      }
+    });
+  }
+
+  let curMode = 'weekly';
+  renderFilters(curMode);
+  renderRf(curMode);
+  document.querySelectorAll('#rf-mode-toolbar .toggle-btn').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#rf-mode-toolbar .toggle-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      curMode = this.dataset.mode;
+      renderFilters(curMode);
+      renderRf(curMode);
+    });
+  });
+
+  /* ---------------- 주간 트렌드 상세지표 YoY ---------------- */
+  if(rf.weekly_yoy){
+    const yoy = rf.weekly_yoy;
+    const metricNames = Object.keys(yoy.daytypes['전체']);
+    if(yoy.duration_buckets){
+      const idx = metricNames.indexOf('재이용율');
+      metricNames.splice(idx>=0 ? idx+1 : metricNames.length, 0, '이용시간구간');
+    }
+    let yoyMetric = metricNames.includes('대당매출') ? '대당매출' : metricNames[0];
+    let weekdayFilter = '전체'; // 전체 | 주중 | 주말
+    let hourFilter = '전체';    // 전체 | 주간 | 심야
+    let yoyChart;
+
+    const yoyColors = { prev:'#85b7eb', cur:'#0c447c' };
+
+    function currentDtypeKey(){
+      if(weekdayFilter==='전체' && hourFilter==='전체') return '전체';
+      if(weekdayFilter==='전체') return hourFilter;
+      if(hourFilter==='전체') return weekdayFilter;
+      return weekdayFilter+'+'+hourFilter;
+    }
+    function currentDtypeLabel(){
+      if(weekdayFilter==='전체' && hourFilter==='전체') return '전체';
+      const parts = [];
+      if(weekdayFilter!=='전체') parts.push(weekdayFilter);
+      if(hourFilter!=='전체') parts.push(hourFilter);
+      return parts.join(' ');
+    }
+
+    const metricNotes = {
+      '차량수': '해당 주에 리턴프리 운행 기록이 1건이라도 있었던 차량번호의 고유 개수',
+      '재이용율': '전주 이용자수 대비 금주 이용자 비중'
+    };
+
+    function metricFilterConfig(metric){
+      const hideBoth = (metric === '차량수') || (metric === '이용시간구간');
+      const hideHour = hideBoth || (metric === '가동률');
+      const hideWeekday = hideBoth;
+      return {hideBoth, hideHour, hideWeekday};
+    }
+
+    function reachableDtypes(metric){
+      const {hideWeekday, hideHour} = metricFilterConfig(metric);
+      const weekdays = hideWeekday ? ['전체'] : ['전체','주중','주말'];
+      const hours = hideHour ? ['전체'] : ['전체','주간','심야'];
+      const set = new Set();
+      weekdays.forEach(wd=>{
+        hours.forEach(hr=>{
+          if(wd==='전체' && hr==='전체') set.add('전체');
+          else if(wd==='전체') set.add(hr);
+          else if(hr==='전체') set.add(wd);
+          else set.add(wd+'+'+hr);
+        });
+      });
+      return Array.from(set);
+    }
+
+    function updateSubFilterVisibility(){
+      const {hideBoth, hideHour, hideWeekday} = metricFilterConfig(yoyMetric);
+      document.getElementById('yoy-weekday-filters').style.display = hideWeekday ? 'none' : 'flex';
+      document.getElementById('yoy-hourtype-filters').style.display = hideHour ? 'none' : 'flex';
+      if(hideWeekday){ weekdayFilter = '전체'; }
+      if(hideHour){ hourFilter = '전체'; }
+    }
+
+    function renderYoyMetricFilters(){
+      const box = document.getElementById('yoy-metric-filters');
+      box.innerHTML = metricNames.map(m=>
+        `<button class="toggle-btn${m===yoyMetric?' active':''}" data-metric="${m}">${m}</button>`
+      ).join('');
+      box.querySelectorAll('[data-metric]').forEach(b=>b.addEventListener('click', function(){
+        yoyMetric = this.dataset.metric;
+        updateSubFilterVisibility();
+        renderYoyMetricFilters(); renderYoyWeekdayFilters(); renderYoyHourFilters(); renderYoy();
+      }));
+    }
+    function renderYoyWeekdayFilters(){
+      const box = document.getElementById('yoy-weekday-filters');
+      box.innerHTML = ['전체','주중','주말'].map(d=>
+        `<button class="sub-toggle-btn${d===weekdayFilter?' active':''}" data-weekday="${d}">${d}</button>`
+      ).join('');
+      box.querySelectorAll('[data-weekday]').forEach(b=>b.addEventListener('click', function(){
+        weekdayFilter = this.dataset.weekday; renderYoyWeekdayFilters(); renderYoy();
+      }));
+    }
+    function renderYoyHourFilters(){
+      const box = document.getElementById('yoy-hourtype-filters');
+      box.innerHTML = ['전체','주간','심야'].map(d=>
+        `<button class="sub-toggle-btn${d===hourFilter?' active':''}" data-hour="${d}">${d}</button>`
+      ).join('');
+      box.querySelectorAll('[data-hour]').forEach(b=>b.addEventListener('click', function(){
+        hourFilter = this.dataset.hour; renderYoyHourFilters(); renderYoy();
+      }));
+    }
+
+    function fmtByUnit(v, unit){
+      if(v==null || isNaN(v)) return '-';
+      if(unit==='매출') return fmtWonFull(v);
+      if(unit==='%') return v+'%';
+      if(unit==='분') return v+'분';
+      if(unit==='km') return v+'km';
+      if(unit==='대수') return v.toLocaleString()+'대';
+      if(unit==='명') return v.toLocaleString()+'명';
+      return v.toLocaleString();
+    }
+
+    function niceStep(range){
+      if(range<=0) return 1;
+      const rough = range/8;
+      const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+      const norm = rough/mag;
+      let step;
+      if(norm<1.5) step=1; else if(norm<3) step=2; else if(norm<7) step=5; else step=10;
+      return step*mag;
+    }
+
+    function getMetricAxisRange(metric){
+      let lo = Infinity, hi = -Infinity;
+      reachableDtypes(metric).forEach(dtype=>{
+        const m = yoy.daytypes[dtype][metric];
+        if(!m) return;
+        Object.values(m.by_year).forEach(d=>{
+          d.values.forEach(v=>{
+            if(v==null || isNaN(v)) return;
+            if(v<lo) lo=v; if(v>hi) hi=v;
+          });
+        });
+      });
+      if(!isFinite(lo) || !isFinite(hi)) return {min:undefined, max:undefined, step:undefined};
+      // 모든 지표(건수/매출/거리/시간/%)가 음수로 내려갈 일이 없으므로 최솟값은 항상 0으로 고정
+      const padded_hi = hi*1.1;
+      const step = niceStep(padded_hi);
+      const min = 0;
+      const max = Math.ceil(padded_hi/step)*step;
+      return {min, max, step};
+    }
+
+    let durationChart;
+    function renderDurationInline(){
+      document.getElementById('yoyChart').style.display = 'none';
+      document.getElementById('durationChart').style.display = 'block';
+      if(yoyChart) yoyChart.destroy();
+      document.getElementById('yoy-metric-note').textContent = '';
+
+      const db = yoy.duration_buckets;
+      const dbColors = ['#2a78d6','#1baf7a','#eb6834','#8a63d2'];
+      const years = yoy.years;
+      const prevYear = years[0], curYear = years[years.length-1];
+      const prevD = db.by_year[prevYear];
+      const curD = db.by_year[curYear];
+      const maxWeek = Math.max(
+        prevD.weeks.length?Math.max(...prevD.weeks):0,
+        curD.weeks.length?Math.max(...curD.weeks):0
+      );
+      const labels = (yoy.week_labels || Array.from({length:maxWeek}, (_,i)=>(i+1)+'주')).slice(0, maxWeek);
+
+      function toSeries(weeks, values){
+        const arr = new Array(maxWeek).fill(null);
+        weeks.forEach((w,i)=>{ arr[w-1] = values[i]; });
+        return arr;
+      }
+
+      document.getElementById('yoy-legend').innerHTML = db.labels.map((b,i)=>`
+        <span style="margin-right:16px;"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dbColors[i]};margin-right:5px;"></i>${b}</span>
+      `).join('') + `<br><span style="font-size:11px;color:var(--text-muted);">실선=${curYear}년, 점선=${prevYear}년</span>`;
+
+      const datasets = [];
+      db.labels.forEach((b,i)=>{
+        datasets.push({
+          label:b+' ('+prevYear+'년)', data: toSeries(prevD.weeks, prevD.buckets[b]),
+          borderColor:dbColors[i], backgroundColor:dbColors[i], borderDash:[6,4],
+          borderWidth:2, pointRadius:0, tension:0.25, spanGaps:true
+        });
+        datasets.push({
+          label:b+' ('+curYear+'년)', data: toSeries(curD.weeks, curD.buckets[b]),
+          borderColor:dbColors[i], backgroundColor:dbColors[i],
+          borderWidth:2, pointRadius:0, tension:0.25, spanGaps:true
+        });
+      });
+
+      durationChart = new Chart(document.getElementById('durationChart'), {
+        type:'line',
+        data:{ labels: labels, datasets: datasets },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          interaction:{mode:'index', intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:(c)=> c.dataset.label+': '+(c.raw==null?'-':c.raw.toLocaleString()+'건')}}
+          },
+          scales:{
+            x:{grid:{display:false}, ticks:{autoSkip:true, maxRotation:45, font:{size:10}}},
+            y:{beginAtZero:true, ticks:{callback:(v)=>v.toLocaleString()}, grid:{color:'#e1e0d9'}}
+          }
+        }
+      });
+    }
+
+    function renderYoy(){
+      if(durationChart) durationChart.destroy();
+      if(yoyMetric === '이용시간구간' && yoy.duration_buckets){
+        renderDurationInline();
+        return;
+      }
+      document.getElementById('yoyChart').style.display = 'block';
+      document.getElementById('durationChart').style.display = 'none';
+
+      if(yoyChart) yoyChart.destroy();
+      document.getElementById('yoy-metric-note').textContent = metricNotes[yoyMetric] || '';
+      const dtypeKey = currentDtypeKey();
+      const dtypeLabel = currentDtypeLabel();
+      const m = yoy.daytypes[dtypeKey][yoyMetric];
+      const years = yoy.years;
+      const prevYear = years[0], curYear = years[1];
+      const prevData = m.by_year[prevYear];
+      const curData = m.by_year[curYear];
+      const maxWeek = Math.max(prevData.weeks.length?Math.max(...prevData.weeks):0, curData.weeks.length?Math.max(...curData.weeks):0);
+      const labels = (yoy.week_labels || Array.from({length:maxWeek}, (_,i)=>(i+1)+'주')).slice(0, maxWeek);
+      const axisRange = getMetricAxisRange(yoyMetric);
+
+      function toSeries(d){
+        const arr = new Array(maxWeek).fill(null);
+        d.weeks.forEach((w,i)=>{ arr[w-1] = d.values[i]; });
+        return arr;
+      }
+
+      document.getElementById('yoy-legend').innerHTML = `
+        <span style="margin-right:16px;"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${yoyColors.prev};margin-right:5px;"></i>${dtypeLabel} (${prevYear}년)</span>
+        <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${yoyColors.cur};margin-right:5px;"></i>${dtypeLabel} (${curYear}년)</span>
+      `;
+
+      yoyChart = new Chart(document.getElementById('yoyChart'), {
+        type:'line',
+        data:{
+          labels: labels,
+          datasets:[
+            {label:prevYear+'년', data: toSeries(prevData), borderColor: yoyColors.prev, backgroundColor: yoyColors.prev, borderDash:[6,4], borderWidth:2, pointRadius:0, tension:0.25, spanGaps:true},
+            {label:curYear+'년', data: toSeries(curData), borderColor: yoyColors.cur, backgroundColor: yoyColors.cur, borderWidth:2, pointRadius:0, tension:0.25, spanGaps:true}
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          interaction:{mode:'index', intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:(c)=> c.dataset.label+': '+fmtByUnit(c.raw, m.unit)}}
+          },
+          scales:{
+            x:{grid:{display:false}, ticks:{autoSkip:true, maxRotation:45, font:{size:10}}},
+            y:{min:axisRange.min, max:axisRange.max, ticks:{stepSize:axisRange.step, callback:(v)=>fmtByUnit(v, m.unit)}, grid:{color:'#e1e0d9'}}
+          }
+        }
+      });
+    }
+
+    renderYoyMetricFilters();
+    updateSubFilterVisibility();
+    renderYoyWeekdayFilters();
+    renderYoyHourFilters();
+    renderYoy();
+  }
+
+  /* ---------------- 요일 x 시간대 히트맵 ---------------- */
+  if(rf.heatmaps){
+    const weekdayLabels = ['월','화','수','목','금','토','일'];
+    const periods = Object.keys(rf.heatmaps);
+    let hmPeriod = periods.includes('최근 4주') ? '최근 4주' : periods[0];
+
+    function heatColor(v, max){
+      if(max<=0) return '#eef2fb';
+      const t = Math.pow(v/max, 0.55); // 대비를 완만하게
+      // 연한 하늘색(#eaf1fc) -> 진한 블루(#1849a3) 보간
+      const c0 = [234,241,252], c1 = [24,73,163];
+      const r = Math.round(c0[0]+(c1[0]-c0[0])*t);
+      const g = Math.round(c0[1]+(c1[1]-c0[1])*t);
+      const b = Math.round(c0[2]+(c1[2]-c0[2])*t);
+      return `rgb(${r},${g},${b})`;
+    }
+    function textColor(v, max){
+      return (max>0 && v/max>0.45) ? '#fff' : '#4a5568';
+    }
+
+    function renderHeatmapFilter(){
+      const box = document.getElementById('heatmap-period-filter');
+      box.innerHTML = periods.map(p=>
+        `<button class="toggle-btn${p===hmPeriod?' active':''}" data-period="${p}">${p}</button>`
+      ).join('');
+      box.querySelectorAll('[data-period]').forEach(b=>b.addEventListener('click', function(){
+        hmPeriod = this.dataset.period; renderHeatmapFilter(); renderHeatmap();
+      }));
+    }
+
+    function renderHeatmap(){
+      const matrix = rf.heatmaps[hmPeriod]; // 7 x 24
+      const max = Math.max(...matrix.flat());
+      const hourHeaders = Array.from({length:24}, (_,h)=>`<th>${h}</th>`).join('');
+
+      let rows = '';
+      matrix.forEach((row, wIdx)=>{
+        const cells = row.map((v,h)=>
+          `<td class="hm-cell" style="background:${heatColor(v,max)}; color:${textColor(v,max)};" title="${weekdayLabels[wIdx]}요일 ${h}시: ${v.toLocaleString()}건">${v>0? v.toLocaleString():''}</td>`
+        ).join('');
+        rows += `<tr><td class="hm-weekday-label">${weekdayLabels[wIdx]}</td>${cells}</tr>`;
+      });
+
+      document.getElementById('heatmap-wrap').innerHTML = `
+        <table class="heatmap-table">
+          <thead><tr><th></th>${hourHeaders}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    renderHeatmapFilter();
+    renderHeatmap();
+  }
+
+  /* ---------------- 지역 간 이동 (Sankey) ---------------- */
+  if(rf.regional_flows){
+    const nodeOrder = ['서울','경기','인천','천안.아산','기타'];
+    const nodeColors = {'서울':'#2a78d6','경기':'#1baf7a','인천':'#eb6834','천안.아산':'#8a63d2','기타':'#9a9890'};
+    const rmPeriods = Object.keys(rf.regional_flows);
+    let rmPeriod = rmPeriods.includes('최근 4주') ? '최근 4주' : rmPeriods[0];
+
+    function renderRegionFilter(){
+      const box = document.getElementById('region-period-filter');
+      box.innerHTML = rmPeriods.map(p=>
+        `<button class="toggle-btn${p===rmPeriod?' active':''}" data-period="${p}">${p}</button>`
+      ).join('');
+      box.querySelectorAll('[data-period]').forEach(b=>b.addEventListener('click', function(){
+        rmPeriod = this.dataset.period; renderRegionFilter(); renderSankey();
+      }));
+    }
+
+    function renderSankey(){
+      const flows = rf.regional_flows[rmPeriod].filter(f=>f.value>0);
+      const W = 680, H = 380, nodeW = 12, gap = 9;
+      const leftX = 56, rightX = W-56-nodeW;
+      const usableH = H - gap*(nodeOrder.length-1);
+
+      const leftTotal = {}, rightTotal = {};
+      nodeOrder.forEach(n=>{ leftTotal[n]=0; rightTotal[n]=0; });
+      flows.forEach(f=>{ leftTotal[f.from]+=f.value; rightTotal[f.to]+=f.value; });
+      const grand = Object.values(leftTotal).reduce((a,b)=>a+b,0) || 1;
+
+      // 각 노드의 높이 (좌/우 동일 스케일 사용 - 전체 유출입 합 기준)
+      const nodeTotal = {};
+      nodeOrder.forEach(n=> nodeTotal[n] = leftTotal[n]+rightTotal[n]);
+      const grand2 = Object.values(nodeTotal).reduce((a,b)=>a+b,0) || 1;
+
+      function layout(totals){
+        let y = 0;
+        const pos = {};
+        nodeOrder.forEach(n=>{
+          const h = Math.max((totals[n]/grand2)*usableH*2, totals[n]>0?4:0);
+          pos[n] = {y0:y, h};
+          y += h + gap;
+        });
+        return pos;
+      }
+      const leftPos = layout(leftTotal);
+      const rightPos = layout(rightTotal);
+
+      // 노드 내에서 각 흐름이 차지할 위치(오프셋) 계산
+      const leftCursor = {}, rightCursor = {};
+      nodeOrder.forEach(n=>{ leftCursor[n]=leftPos[n].y0; rightCursor[n]=rightPos[n].y0; });
+
+      let paths = '';
+      let labels = '';
+      flows.sort((a,b)=> nodeOrder.indexOf(a.from)-nodeOrder.indexOf(b.from) || nodeOrder.indexOf(a.to)-nodeOrder.indexOf(b.to));
+
+      // 노드별 도착/출발 브레이크다운 툴팁(HTML) 미리 구성
+      const leftBreakdown = {}, rightNodeSummary = {};
+      nodeOrder.forEach(n=>{
+        const outRows = flows.filter(f=>f.from===n).map(f=>
+          `${f.to}: ${f.value.toLocaleString()}건 (${(f.value/leftTotal[n]*100).toFixed(1)}%)`
+        ).join('<br>');
+        leftBreakdown[n] = `<b>${n} 출발 ${leftTotal[n].toLocaleString()}건</b><br>${outRows}`;
+        const diff = rightTotal[n] - leftTotal[n];
+        const diffLine = diff>0 ? `${diff.toLocaleString()}건 반납오버`
+                        : diff<0 ? `${Math.abs(diff).toLocaleString()}건 출발오버`
+                        : '차이 없음';
+        rightNodeSummary[n] = `${n}출발 총 ${leftTotal[n].toLocaleString()}건<br>${n}반납 총 ${rightTotal[n].toLocaleString()}건<br><b>${diffLine}</b>`;
+      });
+
+      flows.forEach(f=>{
+        const srcH = leftTotal[f.from]>0 ? (leftPos[f.from].h * f.value/leftTotal[f.from]) : 0;
+        const dstH = rightTotal[f.to]>0 ? (rightPos[f.to].h * f.value/rightTotal[f.to]) : 0;
+        const sy0 = leftCursor[f.from], sy1 = sy0+srcH;
+        const dy0 = rightCursor[f.to], dy1 = dy0+dstH;
+        leftCursor[f.from] += srcH;
+        rightCursor[f.to] += dstH;
+
+        const x0 = leftX+nodeW, x1 = rightX;
+        const midX = (x0+x1)/2;
+        const d = `M${x0},${sy0} C${midX},${sy0} ${midX},${dy0} ${x1},${dy0} L${x1},${dy1} C${midX},${dy1} ${midX},${sy1} ${x0},${sy1} Z`;
+        const opacity = f.from===f.to ? 0.35 : 0.22;
+        paths += `<path d="${d}" fill="${nodeColors[f.from]}" opacity="${opacity}" class="sankey-flow" data-tip="${leftBreakdown[f.from].replace(/"/g,'&quot;')}"></path>`;
+      });
+
+      nodeOrder.forEach(n=>{
+        if(leftPos[n].h>0){
+          paths += `<rect x="${leftX}" y="${leftPos[n].y0}" width="${nodeW}" height="${leftPos[n].h}" fill="${nodeColors[n]}" rx="2" class="sankey-flow" data-tip="${leftBreakdown[n].replace(/"/g,'&quot;')}"></rect>`;
+          labels += `<text x="${leftX-6}" y="${leftPos[n].y0+leftPos[n].h/2}" text-anchor="end" dominant-baseline="middle" font-size="12" fill="var(--text-secondary)">${n}</text>`;
+        }
+        if(rightPos[n].h>0){
+          paths += `<rect x="${rightX}" y="${rightPos[n].y0}" width="${nodeW}" height="${rightPos[n].h}" fill="${nodeColors[n]}" rx="2" class="sankey-flow" data-tip="${rightNodeSummary[n].replace(/"/g,'&quot;')}"></rect>`;
+          labels += `<text x="${rightX+nodeW+6}" y="${rightPos[n].y0+rightPos[n].h/2}" text-anchor="start" dominant-baseline="middle" font-size="12" fill="var(--text-secondary)">${n}</text>`;
+        }
+      });
+
+      const maxY = Math.max(
+        Object.values(leftPos).reduce((m,p)=>Math.max(m,p.y0+p.h),0),
+        Object.values(rightPos).reduce((m,p)=>Math.max(m,p.y0+p.h),0)
+      );
+
+      document.getElementById('sankey-wrap').innerHTML = `
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); padding:0 30px 6px; max-width:640px; margin:0 auto;">
+          <span>출발지역</span><span>반납지역</span>
+        </div>
+        <div style="position:relative; max-width:640px; margin:0 auto;">
+          <svg viewBox="0 0 ${W} ${maxY+16}" style="width:100%; height:auto; display:block;">
+            ${paths}${labels}
+          </svg>
+          <div id="sankey-tooltip" style="position:absolute; display:none; pointer-events:none; background:var(--text); color:#fff; font-size:11px; line-height:1.5; padding:6px 9px; border-radius:6px; white-space:nowrap; z-index:5;"></div>
+        </div>
+      `;
+
+      const svgHost = document.getElementById('sankey-wrap');
+      const tip = document.getElementById('sankey-tooltip');
+      const tipParent = tip.parentElement; // position:relative 래퍼 (svg와 툴팁의 공통 부모)
+      svgHost.querySelectorAll('.sankey-flow').forEach(el=>{
+        el.addEventListener('mouseenter', function(){ tip.innerHTML = this.dataset.tip; tip.style.display='block'; });
+        el.addEventListener('mousemove', function(e){
+          const rect = tipParent.getBoundingClientRect();
+          tip.style.left = (e.clientX-rect.left+6)+'px';
+          tip.style.top = (e.clientY-rect.top+6)+'px';
+        });
+        el.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+      });
+    }
+
+    renderRegionFilter();
+    renderSankey();
+  }
+
+  /* ---------------- 쿠폰 성과 테이블 ---------------- */
+  if(rf.coupon_summary){
+    const cs = rf.coupon_summary;
+    let couponMode = 'weekly'; // weekly | monthly
+    let couponPeriodIdx = null; // 선택된 기간의 index (전체 periods 배열 기준)
+
+    function curTable(){ return cs[couponMode]; }
+
+    function fmtWonShort(v){ return Math.round(v).toLocaleString()+'원'; }
+
+    function renderCouponPeriodFilter(){
+      const table = curTable();
+      const periods = table.periods;
+      if(couponPeriodIdx==null) couponPeriodIdx = periods.length-1;
+      const box = document.getElementById('coupon-period-filter');
+      const ranges = couponMode==='weekly' ? (table.period_ranges||{}) : null;
+
+      box.innerHTML = `
+        <button id="coupon-prev-period" class="toggle-btn">◀ 이전</button>
+        <label style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+          기간 선택
+          <select id="coupon-period-select" style="font-size:13px;padding:5px 8px;border:1px solid var(--border-strong);border-radius:6px;background:var(--card);"></select>
+        </label>
+        <button id="coupon-next-period" class="toggle-btn">다음 ▶</button>
+        <button id="coupon-latest-period" class="toggle-btn">최신</button>
+      `;
+      const sel = document.getElementById('coupon-period-select');
+      periods.forEach((p,i)=>{
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = ranges ? (ranges[p]||p) : p;
+        if(i===couponPeriodIdx) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', function(){ couponPeriodIdx = parseInt(this.value); renderCouponPeriodFilter(); renderCouponTable(); });
+
+      document.getElementById('coupon-prev-period').disabled = (couponPeriodIdx<=0);
+      document.getElementById('coupon-next-period').disabled = (couponPeriodIdx>=periods.length-1);
+      document.getElementById('coupon-latest-period').disabled = (couponPeriodIdx===periods.length-1);
+      document.getElementById('coupon-prev-period').addEventListener('click', function(){
+        if(couponPeriodIdx>0){ couponPeriodIdx--; renderCouponPeriodFilter(); renderCouponTable(); }
+      });
+      document.getElementById('coupon-next-period').addEventListener('click', function(){
+        if(couponPeriodIdx<periods.length-1){ couponPeriodIdx++; renderCouponPeriodFilter(); renderCouponTable(); }
+      });
+      document.getElementById('coupon-latest-period').addEventListener('click', function(){
+        couponPeriodIdx = periods.length-1; renderCouponPeriodFilter(); renderCouponTable();
+      });
+    }
+
+    function renderCouponTable(){
+      const table = curTable();
+      const idx = couponPeriodIdx;
+      const rows = Object.keys(table.coupons).map(name=>{
+        const c = table.coupons[name];
+        const cnt = c.cnt[idx];
+        const prevCnt = idx>0 ? c.cnt[idx-1] : null;
+        let delta = null;
+        if(prevCnt!=null && prevCnt>0) delta = Math.round((cnt-prevCnt)/prevCnt*1000)/10;
+        return {
+          name, cnt, delta,
+          discount_per: c.discount_per[idx],
+          discount_rate: c.discount_rate[idx],
+          revenue_per: c.revenue_per[idx],
+          revenue_per_min: c.revenue_per_min[idx],
+          avg_min: c.avg_min[idx],
+          avg_km: c.avg_km[idx],
+        };
+      }).filter(r=>r.cnt>0);
+
+      const baseline = rows.find(r=>r.name==='쿠폰미사용');
+      const others = rows.filter(r=>r.name!=='쿠폰미사용').sort((a,b)=> b.cnt-a.cnt);
+      const ordered = baseline ? [baseline, ...others] : others;
+
+      const periodUnitLabel = couponMode==='weekly' ? '전주' : '전월';
+      const rowsHtml = ordered.map(r=>{
+        const deltaHtml = r.delta==null ? ''
+          : r.delta>0 ? `<span class="delta-up">(+${r.delta}%)</span>`
+          : r.delta<0 ? `<span class="delta-down">(${r.delta}%)</span>`
+          : `<span style="color:var(--text-muted);">(0%)</span>`;
+        return `<tr>
+          <td>${r.name}</td>
+          <td>${r.cnt.toLocaleString()}건${deltaHtml}</td>
+          <td>${fmtWonShort(r.discount_per)}</td>
+          <td>${r.discount_rate}%</td>
+          <td>${fmtWonShort(r.revenue_per)}</td>
+          <td>${fmtWonShort(r.revenue_per_min)}</td>
+          <td>${r.avg_min}분</td>
+          <td>${r.avg_km}km</td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('coupon-table-wrap').innerHTML = `
+        <table class="coupon-table">
+          <thead><tr>
+            <th>쿠폰명</th><th>사용건수 (${periodUnitLabel}대비)</th><th>건당쿠폰할인금액</th><th>쿠폰할인율</th><th>건당매출</th><th>분당매출</th><th>평균이용시간</th><th>평균이동거리</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      `;
+    }
+
+    document.getElementById('coupon-weekly-btn').addEventListener('click', function(){
+      document.querySelectorAll('#coupon-mode-filter .toggle-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      couponMode = 'weekly'; couponPeriodIdx = null;
+      renderCouponPeriodFilter(); renderCouponTable();
+    });
+    document.getElementById('coupon-monthly-btn').addEventListener('click', function(){
+      document.querySelectorAll('#coupon-mode-filter .toggle-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      couponMode = 'monthly'; couponPeriodIdx = null;
+      renderCouponPeriodFilter(); renderCouponTable();
+    });
+
+    renderCouponPeriodFilter();
+    renderCouponTable();
+  }
+
+  /* ---------------- 주유손익 ---------------- */
+  if(rf.fuel_pl){
+    const fp = rf.fuel_pl;
+    let fuelMonth = '전체';
+
+    function fmtWonSigned(v){
+      if(v==null || isNaN(v)) return '—';
+      const sign = v>0?'+':'';
+      return sign+Math.round(v).toLocaleString()+'원';
+    }
+    function fmtPctSigned(v){
+      if(v==null) return '—';
+      const sign = v>0?'+':'';
+      return sign+v+'%';
+    }
+    function plColorClass(v){ return v>0 ? 'delta-up' : (v<0 ? 'delta-down' : ''); }
+
+    function renderFuelMonthFilter(){
+      const box = document.getElementById('fuel-month-filter');
+      const options = ['전체', ...fp.months];
+      box.innerHTML = options.map(m=>
+        `<button class="toggle-btn${m===fuelMonth?' active':''}" data-month="${m}">${m}</button>`
+      ).join('');
+      box.querySelectorAll('[data-month]').forEach(b=>b.addEventListener('click', function(){
+        fuelMonth = this.dataset.month; renderFuelMonthFilter(); renderFuelAll();
+      }));
+    }
+
+    function renderFuelSummary(d){
+      document.getElementById('fuel-summary-cards').innerHTML = `
+        <div class="kpi-card">
+          <p class="kpi-label">총 주유손익금액</p>
+          <p class="kpi-value ${plColorClass(d.summary.pl)}" style="font-size:19px;">${fmtWonSigned(d.summary.pl)}</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">주유손익률</p>
+          <p class="kpi-value ${plColorClass(d.summary.rate)}" style="font-size:19px;">${fmtPctSigned(d.summary.rate)}</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">km당 주유손익</p>
+          <p class="kpi-value ${plColorClass(d.summary.per_km)}" style="font-size:19px;">${fmtWonSigned(d.summary.per_km)}<span class="kpi-unit">/km</span></p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">건당 주유손익</p>
+          <p class="kpi-value ${plColorClass(d.summary.per_trip)}" style="font-size:19px;">${fmtWonSigned(d.summary.per_trip)}</p>
+        </div>
+      `;
+    }
+
+    const fuelCols = [
+      {key:'name', label:'구분'},
+      {key:'cnt', label:'건수'},
+      {key:'pl', label:'주유손익금액'},
+      {key:'rate', label:'주유손익률'},
+      {key:'per_km', label:'km당주유손익'},
+      {key:'per_trip', label:'건당주유손익'},
+    ];
+    function fuelCellText(r, key){
+      if(key==='name') return r.name;
+      if(key==='cnt') return r.cnt.toLocaleString()+'건';
+      if(key==='pl') return fmtWonSigned(r.pl);
+      if(key==='rate') return fmtPctSigned(r.rate);
+      if(key==='per_km') return fmtWonSigned(r.per_km)+'/km';
+      if(key==='per_trip') return fmtWonSigned(r.per_trip);
+    }
+    function fuelCellClass(r, key){
+      if(['pl','rate','per_km','per_trip'].includes(key)) return plColorClass(r[key]);
+      return '';
+    }
+
+    // 정렬 상태를 테이블별로 따로 기억 (elId -> {key, dir})
+    const sortState = {};
+
+    function renderFuelTable(elId, rows, sortable){
+      if(!sortState[elId]) sortState[elId] = {key:null, dir:1};
+      const st = sortState[elId];
+      let sortedRows = rows.slice();
+      if(st.key){
+        sortedRows.sort((a,b)=>{
+          let av=a[st.key], bv=b[st.key];
+          if(typeof av==='string') return av.localeCompare(bv)*st.dir;
+          av = av==null?-Infinity:av; bv = bv==null?-Infinity:bv;
+          return (av-bv)*st.dir;
+        });
+      }
+      const theadHtml = fuelCols.map(c=>{
+        const isActive = sortable && st.key===c.key;
+        const arrow = isActive ? (st.dir===1?'▲':'▼') : '▲▼';
+        return `<th class="${sortable?'sortable':''} ${isActive?'sort-active':''}" data-key="${c.key}">${c.label}${sortable?` <span class="sort-arrow">${arrow}</span>`:''}</th>`;
+      }).join('');
+      const rowsHtml = sortedRows.map(r=>`
+        <tr>${fuelCols.map(c=>`<td class="${fuelCellClass(r,c.key)}">${fuelCellText(r,c.key)}</td>`).join('')}</tr>
+      `).join('');
+      document.getElementById(elId).innerHTML = `
+        <table class="fuel-table">
+          <thead><tr>${theadHtml}</tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      `;
+      if(sortable){
+        document.querySelectorAll(`#${elId} th.sortable`).forEach(th=>{
+          th.addEventListener('click', function(){
+            const key = this.dataset.key;
+            if(st.key===key) st.dir *= -1; else { st.key = key; st.dir = 1; }
+            renderFuelTable(elId, rows, sortable);
+          });
+        });
+      }
+    }
+
+    function renderFuelAll(){
+      const d = fp.by_month[fuelMonth];
+      renderFuelSummary(d);
+      renderFuelTable('fuel-by-fueltype-wrap', d.by_fuel_type, false);
+      renderFuelTable('fuel-by-vehicle-wrap', d.by_vehicle_type, true);
+      const daytypeRows = ['주간','심야'].filter(k=>d.by_daytype[k]).map(k=>({name:k, ...d.by_daytype[k]}));
+      renderFuelTable('fuel-by-daytype-wrap', daytypeRows, false);
+      renderFuelTripLevel();
+      renderFuelCustomerLevel();
+    }
+
+    let fuelTripScatterChart;
+    function renderFuelTripLevel(){
+      const t = fp.trip_level[fuelMonth];
+      document.getElementById('fuel-trip-cards').innerHTML = `
+        <div class="kpi-card">
+          <p class="kpi-label">전체 이용건</p>
+          <p class="kpi-value" style="font-size:19px;">${t.cnt_total.toLocaleString()}<span class="kpi-unit">건</span></p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">주유손실건</p>
+          <p class="kpi-value delta-down" style="font-size:19px;">${t.cnt_loss.toLocaleString()}<span class="kpi-unit">건 (${t.loss_rate}%)</span></p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">주유흑자 합계</p>
+          <p class="kpi-value delta-up" style="font-size:19px;">${fmtWonSigned(t.profit_sum)}</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">주유손실 합계</p>
+          <p class="kpi-value delta-down" style="font-size:19px;">${fmtWonSigned(t.loss_sum)}</p>
+        </div>
+      `;
+
+      if(fuelTripScatterChart) fuelTripScatterChart.destroy();
+      const profitPoints = t.scatter.filter(p=>p.profit).map(p=>({x:p.dist, y:p.pl}));
+      const lossPoints = t.scatter.filter(p=>!p.profit).map(p=>({x:p.dist, y:p.pl}));
+      fuelTripScatterChart = new Chart(document.getElementById('fuelTripScatterChart'), {
+        type:'scatter',
+        data:{
+          datasets:[
+            {label:'흑자 건', data:profitPoints, backgroundColor:'rgba(42,120,214,0.5)', pointRadius:3},
+            {label:'손실 건', data:lossPoints, backgroundColor:'rgba(192,57,43,0.5)', pointRadius:3}
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:(c)=> c.dataset.label+': '+c.raw.x+'km, 주유손익 '+fmtWonSigned(c.raw.y)}}
+          },
+          scales:{
+            x:{title:{display:true, text:'이용거리(km)'}, grid:{color:'#e1e0d9'}},
+            y:{title:{display:true, text:'주유손익(원)'}, ticks:{callback:(v)=>Math.round(v/10000)+'만'}, grid:{color:'#e1e0d9'}}
+          }
+        }
+      });
+    }
+
+    let fuelScatterChart;
+    function renderFuelCustomerLevel(){
+      const c = fp.customer_level[fuelMonth];
+      document.getElementById('fuel-customer-cards').innerHTML = `
+        <div class="kpi-card">
+          <p class="kpi-label">전체 고객수</p>
+          <p class="kpi-value" style="font-size:19px;">${c.customer_cnt.toLocaleString()}<span class="kpi-unit">명</span></p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">주유손실 고객</p>
+          <p class="kpi-value delta-down" style="font-size:19px;">${c.loss_customer_cnt.toLocaleString()}<span class="kpi-unit">명 (${c.loss_customer_rate}%)</span></p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">주유흑자 합계</p>
+          <p class="kpi-value delta-up" style="font-size:19px;">${fmtWonSigned(c.profit_sum)}</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">주유손실 합계</p>
+          <p class="kpi-value delta-down" style="font-size:19px;">${fmtWonSigned(c.loss_sum)}</p>
+        </div>
+      `;
+
+      if(fuelScatterChart) fuelScatterChart.destroy();
+      const profitPoints = c.scatter.filter(p=>p.profit).map(p=>({x:p.trips, y:p.pl}));
+      const lossPoints = c.scatter.filter(p=>!p.profit).map(p=>({x:p.trips, y:p.pl}));
+      fuelScatterChart = new Chart(document.getElementById('fuelScatterChart'), {
+        type:'scatter',
+        data:{
+          datasets:[
+            {label:'흑자 고객', data:profitPoints, backgroundColor:'rgba(42,120,214,0.6)', pointRadius:4},
+            {label:'손실 고객', data:lossPoints, backgroundColor:'rgba(192,57,43,0.6)', pointRadius:4}
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:(c)=> c.dataset.label+': 월 '+c.raw.x+'건, 주유손익 '+fmtWonSigned(c.raw.y)}}
+          },
+          scales:{
+            x:{title:{display:true, text:'월 총 이용건수'}, grid:{color:'#e1e0d9'}},
+            y:{title:{display:true, text:'주유손익(원)'}, ticks:{callback:(v)=>Math.round(v/10000)+'만'}, grid:{color:'#e1e0d9'}}
+          }
+        }
+      });
+    }
+
+    document.getElementById('fuel-level-trip-btn').addEventListener('click', function(){
+      document.querySelectorAll('#fuel-level-tabs .toggle-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById('fuel-level-trip-panel').style.display = 'block';
+      document.getElementById('fuel-level-customer-panel').style.display = 'none';
+    });
+    document.getElementById('fuel-level-customer-btn').addEventListener('click', function(){
+      document.querySelectorAll('#fuel-level-tabs .toggle-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById('fuel-level-trip-panel').style.display = 'none';
+      document.getElementById('fuel-level-customer-panel').style.display = 'block';
+    });
+
+    renderFuelMonthFilter();
+    renderFuelAll();
+
+    const mt = fp.monthly_trend;
+    new Chart(document.getElementById('fuelTrendChart'), {
+      data:{
+        labels: mt.months,
+        datasets:[
+          {type:'bar', label:'주유손익금액', data:mt.pl, backgroundColor: mt.pl.map(v=> v>=0 ? '#c0392b' : '#2a5db0'), yAxisID:'y', borderRadius:4},
+          {type:'line', label:'주유손익률', data:mt.rate, borderColor:'#eb6834', backgroundColor:'#eb6834', yAxisID:'y1', tension:0.3, borderWidth:2, pointRadius:4}
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index', intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:(c)=> c.dataset.label==='주유손익률' ? c.dataset.label+': '+c.raw+'%' : c.dataset.label+': '+fmtWonSigned(c.raw)}}
+        },
+        scales:{
+          x:{grid:{display:false}},
+          y:{ticks:{callback:(v)=>Math.round(v/10000)+'만'}, grid:{color:'#e1e0d9'}},
+          y1:{position:'right', grid:{display:false}, ticks:{callback:(v)=>v+'%'}}
+        }
+      }
+    });
+  }
+} else {
+  document.getElementById('panel-rf').innerHTML = '<div class="empty">리턴프리 데이터가 없습니다.</div>';
+}
+
+/* ---------------- 카카오 ---------------- */
+const kk = DASHBOARD_DATA.kakao;
+if(kk){
+  const s = kk.summary;
+  document.getElementById('kk-cards').innerHTML = `
+    <div class="card"><p class="label">전체 건수</p><p class="value">${s.total_cnt.toLocaleString()}</p></div>
+    <div class="card"><p class="label">왕복 건수</p><p class="value">${s.roundtrip_cnt.toLocaleString()}</p></div>
+    <div class="card"><p class="label">편도 건수</p><p class="value">${s.oneway_cnt.toLocaleString()}</p></div>
+    <div class="card"><p class="label">누적 매출 (VAT제외)</p><p class="value">${fmtWon(s.total_rev)}</p></div>
+  `;
+
+  new Chart(document.getElementById('kkChart'), {
+    data:{
+      labels: kk.labels,
+      datasets:[
+        {type:'bar', label:'왕복 매출', data:kk.roundtrip, backgroundColor:'#1baf7a', stack:'s', borderRadius:4},
+        {type:'bar', label:'편도 매출', data:kk.oneway, backgroundColor:'#e87ba4', stack:'s', borderRadius:4}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(c)=> c.dataset.label+': '+fmtWonFull(c.raw)}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{autoSkip:true, maxRotation:45}},
+        y:{ticks:{callback:(v)=>fmtWon(v)}, grid:{color:'#e1e0d9'}}
+      }
+    }
+  });
+} else {
+  document.getElementById('panel-kk').innerHTML = '<div class="empty">카카오 데이터가 없습니다.</div>';
+}
+</script>
+</body>
+</html>
