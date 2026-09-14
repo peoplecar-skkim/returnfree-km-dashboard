@@ -51,6 +51,10 @@ KAKAO_DB_PATH = os.environ.get(
     "KAKAO_DB_PATH",
     r"C:\Users\USER\Desktop\수경\3. 데이터\대여내역\KM\rental_data_km_24~.db",
 )
+RESERVATION_CONTROL_DB_PATH = os.environ.get(
+    "RESERVATION_CONTROL_DB_PATH",
+    r"C:\Users\USER\Desktop\수경\3. 데이터\예약관제\리턴프리\rental_data_예약관제_리턴프리_23~.db",
+)
 # 스테이션 등록 파일: 폴더 내 가장 최근 수정된 파일을 자동으로 사용
 STATION_REGISTRY_FOLDER = os.environ.get(
     "STATION_REGISTRY_FOLDER",
@@ -1002,7 +1006,9 @@ def load_kakao(db_path: str):
     conn = sqlite3.connect(db_path)
     df = pd.read_sql_query(
         """
-        SELECT 운행시작일, 출발스테이션, 도착스테이션, 총청구요금, 하이패스요금, 운행거리
+        SELECT 운행시작일, 운행종료일, 예약번호, 출발스테이션, 도착스테이션, 운행거리,
+               이용요금, 시간초과요금, "할인(시동OFF)" as 할인시동오프,
+               "패널티(지역이탈반납)" as 패널티지역이탈, "패널티(기타)" as 패널티기타
         FROM rentals_KM
         """,
         conn,
@@ -1014,18 +1020,45 @@ def load_kakao(db_path: str):
         lambda r: "왕복" if r["출발스테이션"] == r["도착스테이션"] else "편도", axis=1
     )
     df["운행시작일"] = pd.to_datetime(df["운행시작일"], format="mixed", errors="coerce")
+    df["운행종료일"] = pd.to_datetime(df["운행종료일"], format="mixed", errors="coerce")
     df = df.dropna(subset=["운행시작일"])
     df["date"] = df["운행시작일"].dt.date
-    for col in ["총청구요금", "하이패스요금", "운행거리"]:
+    for col in ["이용요금", "시간초과요금", "할인시동오프", "패널티지역이탈", "패널티기타", "운행거리"]:
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-    df["매출"] = df["총청구요금"] / 1.1
+    # 매출 = (이용요금 + 시간초과요금 + 할인(시동OFF) + 패널티(지역이탈반납) + 패널티(기타)) / 1.1
+    df["매출"] = (
+        df["이용요금"] + df["시간초과요금"] + df["할인시동오프"] + df["패널티지역이탈"] + df["패널티기타"]
+    ) / 1.1
 
+    # 예약관제 DB에서 연락처(회원 식별용) 조인 - 카카오(KM) 예약건도 이 DB에 같이 들어있음
+    if os.path.exists(RESERVATION_CONTROL_DB_PATH):
+        try:
+            rconn = sqlite3.connect(RESERVATION_CONTROL_DB_PATH)
+            res = pd.read_sql_query(
+                'SELECT "예약 번호" as 예약번호, 연락처 FROM rentals_예약관제_리턴프리', rconn
+            )
+            rconn.close()
+            res = res.drop_duplicates(subset="예약번호")
+            df = df.merge(res, on="예약번호", how="left")
+        except Exception as e:
+            print(f"[경고] 예약관제 DB 조인 실패: {e}")
+            df["연락처"] = None
+    else:
+        df["연락처"] = None
+
+    # 이용시간(분), 심야(21시~04시59분)/주간 구분
+    df["이용분"] = (df["운행종료일"] - df["운행시작일"]).dt.total_seconds() / 60
+    hour = df["운행시작일"].dt.hour
+    df["hourtype"] = ((hour >= 21) | (hour < 5)).map({True: "심야", False: "주간"})
+
+    # ---------------------------------------------------------------
+    # (기존) 일별 왕복/편도 매출 트렌드
+    # ---------------------------------------------------------------
     daily = (
         df.groupby(["date", "구분"])
         .agg(건수=("매출", "count"), 매출=("매출", "sum"))
         .reset_index()
     )
-
     dates = sorted(df["date"].unique())
     result = {"labels": [str(d) for d in dates], "roundtrip": [], "oneway": [], "roundtrip_cnt": [], "oneway_cnt": []}
     for d in dates:
@@ -1042,6 +1075,85 @@ def load_kakao(db_path: str):
         "oneway_cnt": int((df["구분"] == "편도").sum()),
         "total_rev": round(df["매출"].sum()),
     }
+
+    # ---------------------------------------------------------------
+    # (신규) 리턴프리와 동일한 방식의 실적 요약 카드용 kpi_metrics (주차/월)
+    # ---------------------------------------------------------------
+    weekly_years = sorted(df["운행시작일"].dt.isocalendar().year.unique().tolist())
+    cmp_years = weekly_years[-2:] if len(weekly_years) >= 2 else weekly_years
+    cur_year = cmp_years[-1]
+    prev_year = cmp_years[0] if len(cmp_years) > 1 else None
+
+    iso = df["운행시작일"].dt.isocalendar()
+    df["orig_year"] = iso["year"].astype(int)
+    df["cmp_date"] = df["운행시작일"].dt.normalize()
+    if prev_year is not None:
+        _pm = df["orig_year"] == prev_year
+        df.loc[_pm, "cmp_date"] = df.loc[_pm, "cmp_date"] + pd.Timedelta(days=364)
+    df["iso_week"] = df["cmp_date"].dt.isocalendar()["week"].astype(int)
+    df["iso_year"] = df["orig_year"]
+    df["ym_year"] = df["운행시작일"].dt.year
+    df["ym_month"] = df["운행시작일"].dt.month
+
+    def series_by_year_week(frame, col):
+        out = {}
+        for y in cmp_years:
+            rows = frame[frame["iso_year"] == y].sort_values("iso_week")
+            vals = rows[col].tolist()
+            out[str(y)] = {"weeks": rows["iso_week"].tolist(), "values": [round(v, 1) if isinstance(v, float) else v for v in vals]}
+        return out
+
+    def series_by_year_month(frame, col):
+        out = {}
+        for y in sorted(frame["ym_year"].unique().tolist()):
+            rows = frame[frame["ym_year"] == y].sort_values("ym_month")
+            vals = rows[col].tolist()
+            out[str(y)] = {"weeks": rows["ym_month"].tolist(), "values": [round(v, 1) if isinstance(v, float) else v for v in vals]}
+        return out
+
+    def build_kpi(period_cols, series_fn):
+        g_cnt_rev = df.groupby(period_cols).agg(건수=("매출", "count"), 매출=("매출", "sum")).reset_index()
+        users_g = df.groupby(period_cols)["연락처"].nunique().reset_index(name="이용자수_raw")
+        g_cnt_rev = g_cnt_rev.merge(users_g, on=period_cols, how="left")
+        g_cnt_rev["인당매출"] = (g_cnt_rev["매출"] / g_cnt_rev["이용자수_raw"]).round(0)
+        g_cnt_rev["건당매출"] = (g_cnt_rev["매출"] / g_cnt_rev["건수"]).round(0)
+
+        day_g = df[df["hourtype"] == "주간"].groupby(period_cols).size().reset_index(name="건수")
+        night_g = df[df["hourtype"] == "심야"].groupby(period_cols).size().reset_index(name="건수")
+
+        dur_df = df.dropna(subset=["이용분"])
+        misc_g = (
+            dur_df.groupby(period_cols)
+            .agg(이용분합=("이용분", "sum"), 거리합=("운행거리", "sum"), 건수=("매출", "count"), 매출=("매출", "sum"))
+            .reset_index()
+        )
+        misc_g["평균이용시간"] = (misc_g["이용분합"] / misc_g["건수"]).round(0)
+        misc_g["평균이동거리"] = (misc_g["거리합"] / misc_g["건수"]).round(1)
+        misc_g["분당매출"] = (misc_g["매출"] / misc_g["이용분합"]).round(0)
+
+        return {
+            "건수": {"unit": "건", "by_year": series_fn(g_cnt_rev, "건수")},
+            "주간건수": {"unit": "건", "by_year": series_fn(day_g, "건수")},
+            "심야건수": {"unit": "건", "by_year": series_fn(night_g, "건수")},
+            "총매출": {"unit": "매출", "by_year": series_fn(g_cnt_rev, "매출")},
+            "이용자수": {"unit": "명", "by_year": series_fn(g_cnt_rev, "이용자수_raw")},
+            "건당매출": {"unit": "매출", "by_year": series_fn(g_cnt_rev, "건당매출")},
+            "인당매출": {"unit": "매출", "by_year": series_fn(g_cnt_rev, "인당매출")},
+            "평균이용시간": {"unit": "분", "by_year": series_fn(misc_g, "평균이용시간")},
+            "평균이동거리": {"unit": "km", "by_year": series_fn(misc_g, "평균이동거리")},
+            "분당매출": {"unit": "매출", "by_year": series_fn(misc_g, "분당매출")},
+        }
+
+    result["kpi_metrics"] = build_kpi(["iso_year", "iso_week"], series_by_year_week)
+    result["kpi_metrics_monthly"] = build_kpi(["ym_year", "ym_month"], series_by_year_month)
+
+    kpi_week_ranges = {}
+    for w in sorted(set(df[df["iso_year"] == cur_year]["iso_week"])):
+        start = datetime.fromisocalendar(int(cur_year), int(w), 1).date()
+        end = start + timedelta(days=6)
+        kpi_week_ranges[int(w)] = f"{start.isoformat()} ~ {end.isoformat()}"
+    result["kpi_week_ranges"] = kpi_week_ranges
+
     return result
 
 
